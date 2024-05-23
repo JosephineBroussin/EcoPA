@@ -1,10 +1,10 @@
 Package: EcoPA
-Title: Generates species Pseudo-Absences using the ecological space
+Title: Generates species' Pseudo-Absences within the ecological space
 Version: 0.0.0.9000
 Authors@R: 
     person("Josephine", "Broussin", , "josephine.broussin@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: Using environmental conditions observed for presences of a species, build the corresponding n-dimensional ecological niche and uses it to generate Pseudo-Absences.
+Description: Using eecological conditions observed for presences of a species, build the corresponding n-dimensional ecological niche and uses it to generate Pseudo-Absences.
 License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -13,3 +13,11 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+URL: https://github.com/JosephineBroussin/EcoPA
+BugReports: https://github.com/JosephineBroussin/EcoPA/issues
+Imports: 
+    dplyr,
+    graphics,
+    magrittr,
+    plyr,
+    stats
