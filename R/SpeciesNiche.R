@@ -4,8 +4,10 @@
 #' @param hist_type wich formula is going to be used to calculate breaks for each environmental variables, based on the 3 types of the base hist funtion in r : "Sturges"; "Scott"; "FD" (Freedman-Diaconis)
 #' @param niche_border by default (if not specified) the minimun and maximum of each environmental variables in the data; if specified must be : min of env var 1, max of env var 1, min of env var 2, max of env var 2, ..., min of env var n, max of env var n
 #'
-#' @return an n-dimensions array, each dimensions being an environmental variables, filled with the number of presences for each associations of those variables
+#' @return a list of length 2 with (1) an n-dimensions array, each dimensions being an environmental variables, filled with the number of presences for each associations of those variables and (2) the names of each dimensions (environmental variables)
 #' @export
+#'
+#'
 #'
 #' @import magrittr
 #' @importFrom graphics hist
@@ -37,7 +39,7 @@ SpeciesNiche = function(data, hist_type, niche_border = NULL){
 
   ## Verify that number of couple of niche border = number of col of data
 
-  if ( ! length(niche_border) == 2*ncol(data))
+  if ( ! length(niche_border) == 0 & ! length(niche_border) == 2*ncol(data))
     stop("If specified, length of niche border must be equal to 2*environmental variables (column of data)")
 
 
@@ -80,6 +82,20 @@ SpeciesNiche = function(data, hist_type, niche_border = NULL){
 
   dim_niche = vector()
   dim_names = list()
+
+
+  if(length(niche_border) == 0){
+
+    for(i in 1:ncol(data)){
+
+      niche_border[i*2-1] = plyr::round_any(min(data[,i]), breaks_size[i])
+      niche_border[i*2] = plyr::round_any(max(data[,i]), breaks_size[i])
+    }
+  } else {
+
+    niche_border = niche_border
+  }
+
 
   for (i in 1:ncol(data)){
 

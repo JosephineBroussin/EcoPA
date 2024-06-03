@@ -4,7 +4,7 @@
 #' @param nb_pa a vector of number of pseudo-absences you want to generate
 #' @param ratio_pa_InOut a vector of ratio of pseudo-absences in and out the species niche (for details and advice see help file at : )
 #'
-#' @return a list of data-frame of length nb_pa*ratio_pa_InOut
+#' @return a list of data-frame of length nb_pa*ratio_pa_InOut with environmental values of PA in n columns + a column saying if the PA come from the inside or the outside of the species niche + a column saying the weight of sampling of the PA. Those two last columns allow the user to verify that the PA generated match with its demand.
 #' @export
 #'
 #' @importFrom dplyr mutate_if
