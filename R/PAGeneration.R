@@ -2,7 +2,7 @@
 #'
 #' @param data list of length 2 created by SpeciesNiche (1 = an n-dimensions array, 2 = name of each dimensions (environmental variables))
 #' @param nb_pa a vector of number of pseudo-absences you want to generate
-#' @param ratio_pa_InOut a vector of ratio of pseudo-absences in and out the species niche (for details and advice see help file at : )
+#' @param ratio_pa_in a vector of ratio of pseudo-absences in and out the species niche (for details and advice see help file at : )
 #'
 #' @return a list of data-frame of length nb_pa*ratio_pa_InOut with environmental values of PA in n columns + a column saying if the PA come from the inside or the outside of the species niche + a column saying the weight of sampling of the PA. Those two last columns allow the user to verify that the PA generated match with its demand.
 #' @export
@@ -20,10 +20,10 @@
 #'
 #' species_niche = SpeciesNiche(data = data_species, hist_type = c("FD", "FD", "FD"), niche_border = c(-3,3, 0,6, 0,10))
 #'
-#' PAGeneration(data = species_niche, nb_pa = c(1000, 3000, 5000), ratio_pa_InOut = c(1, 2/3))
+#' PAGeneration(data = species_niche, nb_pa = c(1000, 3000, 5000), ratio_pa_in = c(1, 2/3))
 #'
 #'
-PAGeneration = function(data, nb_pa, ratio_pa_InOut){
+PAGeneration = function(data, nb_pa, ratio_pa_in){
 
   ##### Verifications #####
 
@@ -59,11 +59,11 @@ PAGeneration = function(data, nb_pa, ratio_pa_InOut){
 
   for (i in 1:length(nb_pa)){
 
-    for (j in 1:length(ratio_pa_InOut)){
+    for (j in 1:length(ratio_pa_in)){
 
 
-      nb_pa_in = ceiling(round(nb_pa[i] * ratio_pa_InOut[j]))
-      nb_pa_out = ceiling(round(nb_pa[i] * (1 - ratio_pa_InOut[j])))
+      nb_pa_in = ceiling(round(nb_pa[i] * ratio_pa_in[j]))
+      nb_pa_out = ceiling(round(nb_pa[i] * (1 - ratio_pa_in[j])))
 
 
       pa_in_sampled = sample_n(data_t_in, nb_pa_in, replace = TRUE, weight = Freq)
@@ -87,14 +87,14 @@ PAGeneration = function(data, nb_pa, ratio_pa_InOut){
       pa_sampled = rbind(pa_in_sampled, pa_out_sampled)
       pa_sampled = pa_sampled[sample(1:nrow(pa_sampled)),]
 
-      list_pa_sampled[[j + (length(ratio_pa_InOut) * (i - 1))]] = pa_sampled
+      list_pa_sampled[[j + (length(ratio_pa_in) * (i - 1))]] = pa_sampled
 
-      names(list_pa_sampled)[[j + (length(ratio_pa_InOut) * (i - 1))]] = paste0(nb_pa[i],"PA_", nb_pa_in, "In_", nb_pa_out, "Out")
+      names(list_pa_sampled)[[j + (length(ratio_pa_in) * (i - 1))]] = paste0(nb_pa[i],"PA_", nb_pa_in, "In_", nb_pa_out, "Out")
 
     }
   }
 
-  list_pa_sampled <<- list_pa_sampled
+  return(list_pa_sampled)
 
 }
 
