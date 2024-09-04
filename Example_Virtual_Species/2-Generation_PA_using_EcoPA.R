@@ -4,13 +4,14 @@ library(devtools)
 install_github("JosephineBroussin/EcoPA")
 library(EcoPA)
 
+rm(list = ls())
 
 ########## 1) Creation of the species's niche inside an ecological space ##########
 ### Set the working directory to the path where you downloaded the "Example_Virtual_Species" folder
 
-### Import environmental predictors 
+### Import environmental predictors
 
-setwd("./Exemple_Virtual_Species")
+setwd("./Example_Virtual_Species/Presences_PA")
 
 presences = read.csv("Presences_VS.csv")
 
@@ -39,17 +40,18 @@ pseudo_abs = PAGeneration(data = niche,
 rounded_pres = niche[[3]]
 colnames(rounded_pres) = niche[[2]]
 
-write.csv(rounded_pres, 
-          "Rounded_presences_VS.csv", 
+write.csv(rounded_pres,
+          "Rounded_presences_VS.csv",
           row.names = F)
 
 ### Pseudo-absences
 
 for (i in 1:length(pseudo_abs)){
-  
+
   pseudo_abs_step = pseudo_abs[[i]]
-  
-  write.csv(pseudo_abs_step, 
-            paste0("PA_", names(pseudo_abs)[i], ".csv"), 
-            row.names = T)
+
+  write.csv(pseudo_abs_step,
+            paste0("PA_", names(pseudo_abs)[i], ".csv"),
+            row.names = F)
 }
+

@@ -4,7 +4,9 @@
 
 library(raster)
 library(ggplot2)
-library(virtualspecies) ## package by Leroy used to create the virtual species. Every details about this package can be found on his website.
+library(virtualspecies) ## package by Leroy et al., 2016  (https://doi.org/10.1111/ecog.01388)
+                        ## used to create the virtual species.
+                        ## Every details about this package can be found on B. Leroy's website.
 library(caret)
 library(dplyr)
 library(plyr)
@@ -15,7 +17,7 @@ library(plyr)
 
 ### Import environmental predictors
 
-setwd("./Exemple_Virtual_Species/Environmental_Data")
+setwd("./Example_Virtual_Species/Environmental_Data")
 
 sbt = stack("SBT_climato_2000-2020.grd")
 sst = stack("SST_climato_2000-2020.grd")
@@ -63,7 +65,8 @@ pres_abs_virtspecies = raster(virtspecies_PA$pa.raster)
 
 ### Extraction of the coordinates (latitude x longitude) of 10,000 presences
 
-coord_presences = data.frame(coordinates(pres_abs_virtspecies)[sample(which(pres_abs_virtspecies[] == 1),
+coord_presences = data.frame(coordinates(pres_abs_virtspecies)
+                             [sample(which(pres_abs_virtspecies[] == 1),
                                                                       10000, replace=TRUE),1:2])
 
 
@@ -80,5 +83,5 @@ colnames(coord_presences) =
   c("X", "Y", "SBT", "SST", "Salinity", "Wind", "Ice")
 
 
-setwd('..')
+setwd('../Presences_PA')
 write.csv(coord_presences, "Presences_VS.csv", row.names = F)
