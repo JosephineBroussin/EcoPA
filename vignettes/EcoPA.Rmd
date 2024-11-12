@@ -27,7 +27,6 @@ vignette: >
 </style>
 ```
 
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -37,7 +36,7 @@ knitr::opts_chunk$set(
 
 ```{r setup, warning = FALSE, message=FALSE}
 library(devtools)
-install_github("JosephineBroussin/EcoPA")
+#install_github("JosephineBroussin/EcoPA")
 library(EcoPA)
 library(plot3D)
 library(dplyr)
@@ -53,7 +52,6 @@ The EcoPA package generates pseudo-absences for a species in ecological space th
 ## 1. SpeciesNiche : Creating your species' niche within an ecological space
 
 The first step is to construct an ecological space represented as an n-dimensional array. Below is an illustration of a 3-dimensional array:
-
 
 ```{r echo = TRUE, fig.height = 5, fig.width = 7, fig.align = 'left'}
 set.seed(10)
@@ -82,7 +80,6 @@ fig = plot_ly(data_species,
   layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
 fig
 ```
-
 
 With the **SpeciesNiche** function you can :
 
@@ -118,7 +115,6 @@ Available formulas are Sturges and Freedman-Diaconis (from the hist function in 
 
 Note: For some distributions, these two formulas may calculate the same breaks.
 
-
 *Example of how an environmental predictor is represented with different formulas*
 
 ```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
@@ -132,7 +128,6 @@ hist(data_species[,1], breaks = "FD", ##Smaller breaks
 box()
 ```
 
-
 -   The **niche_border** argument : This can be either NULL or a vector with length equal to 2 \* number of environmental predictors.
 
     -   If NULL: The borders of each dimension in the n-dimensional array (ecological space) will be set to the minimum and maximum values of each predictor in the **data** argument.
@@ -142,9 +137,10 @@ We strongly recommend enlarging the ecological space beyond the environment repr
 
 The function output is a list of length 3. The first object is the array of n-dimensions, filled with the presences, the second is the names of each dimension of the array and the third is the input presences (**data**) rounded to the **bins-sizes** used to construct the array. When using the ecological pseudo-absences generated with the EcoPA package in a Species Distribution Model, you should use those rounded presences as well (instead of the raw presences).
 
+------------------------------------------------------------------------
 
-___
 ### Using the Sturges formula
+
 *Example of an array, constructed with bins calculated using the* **Sturges** *formula for every predictor, and* **niche_border = NULL**
 
 ```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
@@ -160,7 +156,6 @@ rounded_presences = sn_1[[3]]
 # Print the dimension names
 dimension_names
 ```
-
 
 ```{r, fig.height = 5, fig.width = 7, fig.align = 'left', warning = FALSE}
 # Convert table to dataframe and set column names
@@ -197,11 +192,11 @@ fig
 
 ```
 
- 
-___
-### Using the Sturges formula and user-defined niche borders
-*Example of an array, constructed with bins calculated using the* **Sturges** *formula for every predictor, and* **niche_border = c(-10, 10, -5, 10, -20, 20)**
+------------------------------------------------------------------------
 
+### Using the Sturges formula and user-defined niche borders
+
+*Example of an array, constructed with bins calculated using the* **Sturges** *formula for every predictor, and* **niche_border = c(-10, 10, -5, 10, -20, 20)**
 
 ```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
 ## creation of the eco space, filled with species's presences
@@ -239,9 +234,10 @@ fig = plot_ly(plot_df[plot_df$Freq > 0, ],
 fig
 ```
 
+------------------------------------------------------------------------
 
-___
 ### Using the Freedman-Diaconis formula and user-defined niche borders
+
 *Example of an array, constructed with bins calculated using the* **FD** *(Freedman-Diaconis) formula for every predictor, and* **niche_border = c(-10, 10, -5, 10, -20, 20)**
 
 ```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
@@ -326,8 +322,6 @@ fig = plot_ly(reverse_niche,
   layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
 fig
 ```
-
-
 
 One important consideration is that the reversed niche has two parts:
 
