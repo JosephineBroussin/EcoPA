@@ -4,12 +4,12 @@
 \alias{SpeciesNiche}
 \title{SpeciesNiche}
 \usage{
-SpeciesNiche(data, hist_type, niche_border = NULL)
+SpeciesNiche(data, niche_border = NULL, bins_sizes)
 }
 \arguments{
 \item{data}{a dataframe with m rows = presences of the species and n columns = environmental variables}
 
-\item{hist_type}{wich formula is going to be used to calculate breaks for each environmental variables, based on the 3 types of the base hist funtion in r : "Sturges"; "Scott"; "FD" (Freedman-Diaconis)}
+\item{bins_sizes}{wich formula is going to be used to calculate bins sizes for each environmental variables, based on the 3 types of the base hist funtion in r : "Sturges"; "Scott"; "FD" (Freedman-Diaconis)}
 
 \item{niche_border}{by default (if not specified) the minimun and maximum of each environmental variables in the data; if specified must be : min of env var 1, max of env var 1, min of env var 2, max of env var 2, ..., min of env var n, max of env var n}
 }
@@ -21,10 +21,10 @@ SpeciesNiche
 }
 \examples{
 set.seed(10)
-data_species = data.frame(Env_Var1= rnorm(100),
-                              Env_Var2 = rnorm(100,3,1),
-                              Env_Var3 = rnorm(100,5,2))
+data_species = data.frame(Pred_1= rnorm(100),
+                              Pred_2 = rnorm(100,3,1),
+                              Pred_3 = rnorm(100,5,2))
 
-SpeciesNiche(data = data_species, hist_type = c("FD", "FD", "FD"), niche_border = c(-3,3, 0,6, 0,10))
+SpeciesNiche(data = data_species, niche_border = c(-3,3, 0,6, 0,10), bins_sizes = c("FD", "FD", "FD"))
 
 }
