@@ -25,7 +25,7 @@
 #'                           Pred_2 = rnorm(100,3,1),
 #'                           Pred_3 = rnorm(100,5,2))
 #'
-#' SpeciesNiche(data = data_species, niche_border = c(-3,3, 0,6, 0,10), bins_sizes = c("FD", "FD", "FD"), )
+#' SpeciesNiche(data = data_species, niche_border = c(-3,3, 0,6, 0,10), bins_sizes = c("FD", "FD", "FD"))
 #'
 SpeciesNiche = function(data, niche_border = NULL, bins_sizes){
 
