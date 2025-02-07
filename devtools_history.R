@@ -1,7 +1,11 @@
 #### A history of what i runned in the console to build the package
 
 
+<<<<<<< HEAD
 ## What document to ignore in the package (this one because it is just to keep track of what ive done)
+=======
+## What document to ignore in the package (this one beacause it is just to keep track of what ive done)
+>>>>>>> 66e447b856e70a8d82a3bf1bb1e8575f9cab916e
 usethis::use_build_ignore("devtools_history.R")
 
 
