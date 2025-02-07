@@ -1,0 +1,361 @@
+---
+title: "EcoPA : generating pseudo-absences for a species in ecological space"
+author: "Joséphine BROUSSIN - josephine.broussin@gmail.com"
+date: "August 2024"
+output: 
+  rmarkdown::html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+vignette: >
+  %\VignetteIndexEntry{EcoPA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{css, echo=FALSE}
+<style>
+  .tocify-item {
+    list-style-type: none; /* Remove bullets */
+    margin-left: 0; /* Remove indentation */
+  }
+  .tocify-header {
+    font-weight: bold; /* Optional: make headers bold */
+  }
+</style>
+```
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, warning = FALSE, message=FALSE}
+library(devtools)
+#install_github("JosephineBroussin/EcoPA")
+library(EcoPA)
+library(plot3D)
+library(dplyr)
+library(plotly)
+```
+
+The EcoPA package generates pseudo-absences for a species in ecological space through a two-step process:
+
+(1) **SpeciesNiche**: An ecological space is created and populated with species presences. The more presences in a given area, the more suitable that environment is considered for the species.
+
+(2) **PAGeneration**: This space is then inverted: areas that were highly environmentally suitable become less suitable for pseudo-absences, meaning they are less likely to be sampled as such. In summary, if there are many observed presences for a particular combination of environmental predictors, we can hypothesize that this environment is highly suitable for the species and therefore not suitable as a location for pseudo-absences (and inversely).
+
+## 1. SpeciesNiche : Creating your species' niche within an ecological space
+
+The first step is to construct an ecological space represented as an n-dimensional array. Below is an illustration of a 3-dimensional array:
+
+```{r echo = TRUE, fig.height = 5, fig.width = 7, fig.align = 'left'}
+set.seed(10)
+data_species = data.frame(Pred_1 = rnorm(1000),
+                          Pred_2 = rnorm(1000, 3, 1),
+                          Pred_3 = rnorm(1000, 5, 2))
+
+# Combine all predictor values to determine the axis range
+all_values = c(data_species$Pred_1, data_species$Pred_2, data_species$Pred_3)
+axis_range = range(all_values, na.rm = TRUE)
+
+# Create a 3D scatter plot using plotly
+fig = plot_ly(data_species, 
+               x = ~Pred_1, 
+               y = ~Pred_2, 
+               z = ~Pred_3,           
+               marker = list(size = 3)) %>%
+  add_markers() %>%
+  layout(scene = list(
+    xaxis = list(title = 'Pred_1', range = axis_range),
+    yaxis = list(title = 'Pred_2', range = axis_range),
+    zaxis = list(title = 'Pred_3', range = axis_range),
+    aspectmode = 'cube'), 
+    showlegend = FALSE) %>% 
+  colorbar(title = "") %>% 
+  layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
+fig
+```
+
+With the **SpeciesNiche** function you can :
+
+-   Set the limits (minimum and maximum of each dimension) of this array, defining the boundaries of the ecological space you want to work with.
+-   Set the size of the bins for each dimension of this array, determining the resolution of the ecological space.
+
+The size of the array is limited by the maximum number of elements an R array can handle: 2,147,486,647. For example, when using 6 predictors, the maximum number of breaks is ∛2,147,486,647, which is approximately 35 per predictor. You may need to adjust the limits and bins sizes to create a workable array.
+
+The number of dimensions in the array corresponds to the number of environmental predictors you are using. It is populated with the number of species presences for each combination of your environmental predictors.
+
+### Exemple of an 3-dimensional array (ecological space) filled with species' presences
+
+To create this, the function uses:
+
+-   The **data** argument : a data frame with environmental predictors as columns and observed species' presences as rows.
+
+*For a data frame with 3 environmental predictors (columns) and 1000 presences (rows)*
+
+```{r}
+set.seed(10)
+data_species = data.frame(Pred_1 = rnorm(1000),
+                          Pred_2 = rnorm(1000, 3, 1),
+                          Pred_3 = rnorm(1000, 5, 2))
+```
+
+-   The **bins_sizes** argument : A list with length equal to the number of environmental predictors. For each predictor, specify either the desired size of the bins (numeric value) OR a formula to represent the predictor as a histogram. The bins of these histograms are then used to construct the n-dimensional array. You can not mix numeric values and formula but you can mix different formulas.
+
+Available formulas are Sturges and Freedman-Diaconis (from the hist function in base R):
+
+<em>The Sturges formula</em> calculates larger bins. This should be used when: - The density of presences for a predictor is biased (due to lack of data), as larger bins will smooth it. - You have a large number of predictors and need to limit the size of the array.
+
+<em>The Freedman-Diaconis (FD) formula</em> calculates smaller bins. This should be used when: - Presences accurately represent the species' response to a predictor. - You have less predictors or they cover a small range of values. Smaller bins will provide more detail in the modeling phase but rapidly increases the size of the array.
+
+Note: For some distributions, these two formulas may calculate the same breaks.
+
+*Example of how an environmental predictor is represented with different formulas*
+
+```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
+hist(data_species[,1], breaks = "Sturges", ##Bigger breaks
+     main = "Predictor 1 using Sturges",
+     xlab = "Environmental gradient") 
+box()
+hist(data_species[,1], breaks = "FD", ##Smaller breaks
+     main = "Predictor 1 using Freedman-Diaconis", 
+     xlab = "Environmental gradient") 
+box()
+```
+
+-   The **niche_border** argument : This can be either NULL or a vector with length equal to 2 \* number of environmental predictors.
+
+    -   If NULL: The borders of each dimension in the n-dimensional array (ecological space) will be set to the minimum and maximum values of each predictor in the **data** argument.
+    -   If specified: The vector should be organized as follows: c(min_pred_1, max_pred_1, min_pred_2, max_pred_2, ..., min_pred_n, max_pred_n)
+
+We strongly recommend enlarging the ecological space beyond the environment represented by the presences (details in the PAGeneration section below).
+
+The function output is a list of length 3. The first object is the array of n-dimensions, filled with the presences, the second is the names of each dimension of the array and the third is the input presences (**data**) rounded to the **bins-sizes** used to construct the array. When using the ecological pseudo-absences generated with the EcoPA package in a Species Distribution Model, you should use those rounded presences as well (instead of the raw presences).
+
+------------------------------------------------------------------------
+
+### Using the Sturges formula
+
+*Example of an array, constructed with bins calculated using the* **Sturges** *formula for every predictor, and* **niche_border = NULL**
+
+```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
+## creation of the eco space, filled with species's presences
+sn_1 = EcoPA::SpeciesNiche(data = data_species, 
+                           bins_sizes = rep("Sturges", 3))
+
+# Extract the array and dimension names
+array_data = sn_1[[1]]
+dimension_names = sn_1[[2]]
+rounded_presences = sn_1[[3]]
+
+# Print the dimension names
+dimension_names
+```
+
+```{r, fig.height = 5, fig.width = 7, fig.align = 'left', warning = FALSE}
+# Convert table to dataframe and set column names
+plot_df = as.data.frame.table(sn_1[[1]])
+colnames(plot_df) = c(sn_1[[2]], "Freq")
+
+# Convert Pred columns to numeric
+pred_cols = c("Pred_1", "Pred_2", "Pred_3")
+plot_df[pred_cols] = lapply(plot_df[pred_cols], function(x) as.numeric(as.character(x)))
+
+# Calculate the range for all axes
+all_values = c(plot_df$Pred_1, plot_df$Pred_2, plot_df$Pred_3)
+axis_range = range(all_values, na.rm = TRUE)
+
+# Graphical representation
+color_scale = colorRamp(c("#9999ff", "yellow", "red"))
+fig = plot_ly(plot_df[plot_df$Freq > 0, ], 
+               x = ~Pred_1, 
+               y = ~Pred_2, 
+               z = ~Pred_3, 
+               color = ~Freq, 
+               colors = color_scale,
+               marker = list(size = 5)) %>%
+  add_markers() %>%
+  layout(scene = list(
+    xaxis = list(title = 'Pred_1', range = axis_range),
+    yaxis = list(title = 'Pred_2', range = axis_range),
+    zaxis = list(title = 'Pred_3', range = axis_range),
+    aspectmode = 'cube'),
+    showlegend = FALSE) %>% 
+  colorbar(title = "") %>% 
+  layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
+fig
+
+```
+
+------------------------------------------------------------------------
+
+### Using the Sturges formula and user-defined niche borders
+
+*Example of an array, constructed with bins calculated using the* **Sturges** *formula for every predictor, and* **niche_border = c(-10, 10, -5, 10, -20, 20)**
+
+```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
+## creation of the eco space, filled with species's presences
+sn_2 = EcoPA::SpeciesNiche(data = data_species, 
+                           bins_sizes  = rep("Sturges", 3),
+                           niche_border = c(-10, 10, -5, 10, -20, 20))
+```
+
+```{r, fig.height = 5, fig.width = 7, fig.align = 'left', warning = FALSE}
+# Convert table to dataframe and set column names
+plot_df = as.data.frame.table(sn_2[[1]])
+colnames(plot_df) = c(sn_2[[2]], "Freq")
+
+# Convert Pred columns to numeric
+pred_cols = c("Pred_1", "Pred_2", "Pred_3")
+plot_df[pred_cols] = lapply(plot_df[pred_cols], function(x) as.numeric(as.character(x)))
+
+# Graphical representation
+fig = plot_ly(plot_df[plot_df$Freq > 0, ], 
+               x = ~Pred_1, 
+               y = ~Pred_2, 
+               z = ~Pred_3, 
+               color = ~Freq, 
+               colors = color_scale,
+               marker = list(size = 5)) %>%
+  add_markers() %>%
+  layout(scene = list(
+    xaxis = list(title = 'Pred_1', range = axis_range),
+    yaxis = list(title = 'Pred_2', range = axis_range),
+    zaxis = list(title = 'Pred_3', range = axis_range),
+    aspectmode = 'cube'),
+    showlegend = FALSE) %>% 
+  colorbar(title = "") %>% 
+  layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
+fig
+```
+
+------------------------------------------------------------------------
+
+### Using the Freedman-Diaconis formula and user-defined niche borders
+
+*Example of an array, constructed with bins calculated using the* **FD** *(Freedman-Diaconis) formula for every predictor, and* **niche_border = c(-10, 10, -5, 10, -20, 20)**
+
+```{r, fig.height = 4, fig.width = 6, fig.align = 'center'}
+## Creation of the eco space, filled with species's presences
+sn_3 = EcoPA::SpeciesNiche(data = data_species, 
+                           bins_sizes  = rep("FD", 3),
+                           niche_border = c(-10, 10, -5, 10, -20, 20))
+```
+
+```{r, fig.height = 5, fig.width = 7, fig.align = 'left', warning = FALSE}
+# Convert table to dataframe and set column names
+plot_df = as.data.frame.table(sn_3[[1]])
+colnames(plot_df) = c(sn_3[[2]], "Freq")
+
+# Convert Pred columns to numeric
+pred_cols = c("Pred_1", "Pred_2", "Pred_3")
+plot_df[pred_cols] = lapply(plot_df[pred_cols], function(x) as.numeric(as.character(x)))
+
+# Graphical representation
+fig = plot_ly(plot_df[plot_df$Freq > 0, ], 
+               x = ~Pred_1, 
+               y = ~Pred_2, 
+               z = ~Pred_3, 
+               color = ~Freq, 
+               colors = color_scale,
+               marker = list(size = 5)) %>%
+  add_markers() %>%
+  layout(scene = list(
+    xaxis = list(title = 'Pred_1', range = axis_range),
+    yaxis = list(title = 'Pred_2', range = axis_range),
+    zaxis = list(title = 'Pred_3', range = axis_range),
+    aspectmode = 'cube'),
+    showlegend = FALSE) %>% 
+  colorbar(title = "") %>% 
+  layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
+fig
+```
+
+## 2. PAGeneration: Reversing the niche and weighted sampling of pseudo-absences within it
+
+The function first reverses the species' niche in the ecological space we just built. To do this, it calculates for each combination of environmental predictors:
+
+Nr = max(N) - N
+
+Where:
+
+-   Nr = the "number" of pseudo-absences used as sampling weight
+-   max(N) = the maximum number of presences in the niche
+-   N = number of presences observed for that combination
+
+Here is a representation of the reversed niche of sn_3 (SpeciesNiche output from the previous section):
+
+```{r, fig.height = 5, fig.width = 7, fig.align = 'left', warning = FALSE}
+sn_3_niche = sn_3[[1]]
+sn_3_niche[is.na(sn_3_niche)] = 0 
+reverse_niche = max(sn_3_niche, na.rm = TRUE) - sn_3_niche
+reverse_niche = as.data.frame.table(reverse_niche)
+colnames(reverse_niche) = c(sn_3[[2]], "Freq")
+
+# Convert Pred columns to numeric
+pred_cols = c("Pred_1", "Pred_2", "Pred_3")
+reverse_niche[pred_cols] = lapply(reverse_niche[pred_cols], function(x) as.numeric(as.character(x)))
+
+# Graphical representation
+fig = plot_ly(reverse_niche, 
+               x = ~Pred_1, 
+               y = ~Pred_2, 
+               z = ~Pred_3, 
+               color = ~Freq, 
+               colors = color_scale,
+               marker = list(size = 3, 
+                             opacity = 0.4,  # Add transparency
+                             line = list(width = 0))) %>%  # Remove marker outline
+  add_markers() %>%
+  layout(scene = list(
+    xaxis = list(title = 'Pred_1', range = axis_range),
+    yaxis = list(title = 'Pred_2', range = axis_range),
+    zaxis = list(title = 'Pred_3', range = axis_range),
+    aspectmode = 'cube'),
+    showlegend = FALSE) %>% 
+  colorbar(title = "") %>% 
+  layout(scene = list(camera = list(eye = list(x = 1.5, y = 1.5, z = .2))))
+fig
+```
+
+One important consideration is that the reversed niche has two parts:
+
+-   Where you had presences, called "inside the niche"
+-   Where you had no presences, called "outside the niche"
+
+When the ecological space (inside + outside) is broad compared to the species' niche (inside), there is a need to separate sampling into two steps: **one inside** and **one outside**.
+
+**Why?**
+
+Without this separation, all pseudo-absences will be generated in the larger outside part. This results in presences only for one part of the environment (inside the niche) and pseudo-absences only for the other (outside the niche). When this information is input into a Species Distribution algorithm, it models a binary response curve (0/1) to the environment, without transition. However, some environmental combinations are neither "totally suitable" nor "totally unsuitable". To capture this nuance, you need pseudo-absences "inside the niche".
+
+This sampling separation is managed with the **ratio_pa_in** argument:
+
+-   0: All pseudo-absences sampled outside the niche (0 pseudo-absence inside)
+-   0.3: One-third sampled inside, two-thirds outside
+-   1: All pseudo-absences sampled inside the niche
+
+From experience, the larger the outside part, the higher the ratio should be for sampling within. For ecological spaces filled at one-tenth with presences, best results were achieved with half-half sampling. We strongly recommend trying several ratios.
+
+Function structure:
+
+-   **data** argument: output of **SpeciesNiche**
+-   **nb_pa** argument: number of pseudo-absences to sample (vector, e.g., nb_pa = c(200, 500, 1000))
+-   **ratio_pa_in** argument: ratio of "inside" pseudo-absences (vector, e.g., ratio_in = c(0, 0.3, 0.5, 0.8, 1))
+
+The function output is a list of nb_pa x ratio_pa_in length. In our example, 3 x 5 = 15 dataframes (5 with 200 pseudo-absences, 5 with 500, and 5 with 1000, each set having different inside ratios). Each dataframe is composed of the pseudo-absences (n columns with the values of the environmental predictors) and 2 extra columns to check that the sampling match your request. The first one is "Freq" which correspond to the frequency of PA for this association of environmental values (the less presences, the more PA). The second correspond to the location of the PA: inside or outside the niche.
+
+```{r}
+# Generate pseudo-absences with different ratios
+pa = PAGeneration(data = sn_3,
+                  nb_pa = c(200, 500, 1000),
+                  ratio_pa_in = c(0, 0.3, 0.5, 0.8, 1))
+length(pa)
+names(pa)
+head(pa[[1]])
+```
